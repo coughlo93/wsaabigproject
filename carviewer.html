@@ -1,215 +1,235 @@
 <html>
-    <head>
-        <title> view Cars</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" crossorigin="anonymous">
-    </head>
-    <body>
-        <h1>Cars</h1>
-        <div>
-            <button id="showCreateButton" onclick="showCreate()">Create</button>
-        </div>
-        <div>
-            <table class="table" id="carTable">
-                <tr>
-                    <th>id</th>
-                    <th>Manufacturer</th>
-                    <th>Model</th>
-                    <th>Year</th>
-                    <th>Update</th>
-                    <th>Delete</th>
-                </tr>
-                <!-- Rows will be appended here by the script -->
-            </table>
-        </div>
-        <div id="createUpdateForm" style="display: none">
-            <h2>
-                <span id="createLabel">Create a</span> 
-                <span id="updateLabel">update</span> Car
-            </h2>
-            <input type="hidden" name="id" />
-            Manufacturer <input type="text" name="manufacturer" /><br/>
-            Model <input type="text" name="model" /> <br/>
-            Year <input type="number" name="year" /> <br/>
-            <span><button id="doCreateButton" onclick="doCreate()">Create</button></span>
-            <span><button id="doUpdateButton" onclick="doUpdate()">Update</button></span>
-        </div>
-    </body>
-    <script>
-        function showCreate() {
-            document.getElementById('showCreateButton').style.display = "none";
-            document.getElementById('carTable').style.display = "none";
-            document.getElementById('createUpdateForm').style.display = "block";
-            document.getElementById('createLabel').style.display = "inline";
-            document.getElementById('updateLabel').style.display = "none";
-            document.getElementById('doCreateButton').style.display = "block";
-            document.getElementById('doUpdateButton').style.display = "none";
-        }
-        function showViewAll() {
-            document.getElementById('showCreateButton').style.display = "block";
-            document.getElementById('carTable').style.display = "block";
-            document.getElementById('createUpdateForm').style.display = "none";
-        }
-        function showUpdate(buttonElement) {
-            document.getElementById('showCreateButton').style.display = "none";
-            document.getElementById('carTable').style.display = "none";
-            document.getElementById('createUpdateForm').style.display = "block";
-            document.getElementById('createLabel').style.display = "none";
-            document.getElementById('updateLabel').style.display = "inline";
-            document.getElementById('doCreateButton').style.display = "none";
-            document.getElementById('doUpdateButton').style.display = "block";
-            // Get the table row of the clicked Update button
-            var rowElement = buttonElement.parentNode.parentNode;
-            var car = getCarFromRow(rowElement);
-            populateFormWithCar(car);
-        }
-        function doCreate() {
-            var form = document.getElementById('createUpdateForm');
-            var car = {};
-            car.manufacturer = form.querySelector('input[name="manufacturer"]').value;
-            car.model = form.querySelector('input[name="model"]').value;
-            car.year = form.querySelector('input[name="year"]').value;
-            console.log(JSON.stringify(car));
-            createCarAjax(car);
-        }
-        function doUpdate() {
-            var car = getCarFromForm();
-            var rowElement = document.getElementById(car.id);
-            updateCarAjax(car);
-            setCarInRow(rowElement, car);
-            clearForm();
-            showViewAll();
-        }
-        function doDelete(buttonElem) {
-            var tableElement = document.getElementById('carTable');
-            var rowElement = buttonElem.parentNode.parentNode;
-            var index = rowElement.rowIndex;
-            deleteCarAjax(rowElement.getAttribute("id"));
-            tableElement.deleteRow(index);
-        }
-        function addCarToTable(car) {
-            var tableElement = document.getElementById('carTable');
-            var rowElement = tableElement.insertRow(-1);
-            rowElement.setAttribute('id', car.id);
-            var cell1 = rowElement.insertCell(0);
-            cell1.innerHTML = car.id;
-            var cell2 = rowElement.insertCell(1);
-            cell2.innerHTML = car.manufacturer;
-            var cell3 = rowElement.insertCell(2);
-            cell3.innerHTML = car.model;
-            var cell4 = rowElement.insertCell(3);
-            cell4.innerHTML = car.year;
-            var cell5 = rowElement.insertCell(4);
-            cell5.innerHTML = '<button onclick="showUpdate(this)">Update</button>';
-            var cell6 = rowElement.insertCell(5);
-            cell6.innerHTML = '<button onclick="doDelete(this)">Delete</button>';
-        }
-        function clearForm() {
-            var form = document.getElementById('createUpdateForm');
-            form.querySelector('input[name="manufacturer"]').value = '';
-            form.querySelector('input[name="model"]').value = '';
-            form.querySelector('input[name="year"]').value = '';
-        }
-        function getCarFromRow(rowElement) {
-            var car = {};
-            car.id = rowElement.getAttribute('id');
-            car.manufacturer = rowElement.cells[1].firstChild.textContent;
-            car.model = rowElement.cells[2].firstChild.textContent;
-            car.year = parseInt(rowElement.cells[3].firstChild.textContent, 10);
-            return car;
-        }
-        function setCarInRow(rowElement, car) {
-            rowElement.cells[0].firstChild.textContent = car.id;
-            rowElement.cells[1].firstChild.textContent = car.manufacturer;
-            rowElement.cells[2].firstChild.textContent = car.model;
-            rowElement.cells[3].firstChild.textContent = car.year;
-        }
-        function populateFormWithCar(car) {
-            var form = document.getElementById('createUpdateForm');
-            form.querySelector('input[name="id"]').disabled = true;
-            form.querySelector('input[name="id"]').value = car.id;
-            form.querySelector('input[name="manufacturer"]').value = car.manufacturer;
-            form.querySelector('input[name="model"]').value = car.model;
-            form.querySelector('input[name="year"]').value = car.year;
-            return car;
-        }
-        function getCarFromForm() {
-            var form = document.getElementById('createUpdateForm');
-            var car = {};
-            car.id = form.querySelector('input[name="id"]').value;
-            car.manufacturer = form.querySelector('input[name="manufacturer"]').value;
-            car.model = form.querySelector('input[name="model"]').value;
-            car.year = parseInt(form.querySelector('input[name="year"]').value, 10);
-            console.log(JSON.stringify(car));
-            return car;
-        }
-        // AJAX calls to the REST API
-        function getAllAjax() {
-            $.ajax({
-                url: "/cars",
-                method: "GET",
-                dataType: "JSON",
-                success: function(result) {
-                    for (car of result) {
-                        addCarToTable(car);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log("error: " + status + " msg:" + error);
-                }
-            });
-        }
-        function createCarAjax(car) {
-            console.log(JSON.stringify(car));
-            $.ajax({
-                url: "/cars",
-                method: "POST",
-                data: JSON.stringify(car),
-                dataType: "JSON",
-                contentType: "application/json; charset=utf-8",
-                success: function(result) {
-                    // Assign the new ID returned by the server and add to table
-                    car.id = result.id;
+<head>
+    <title>View Cars</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" crossorigin="anonymous">
+</head>
+<body>
+    <h1>Cars</h1>
+
+    <!-- Button to show create form -->
+    <div>
+        <button id="showCreateButton" onclick="showCreate()">Create</button>
+    </div>
+
+    <!-- Table displaying the list of cars -->
+    <div>
+        <table class="table" id="carTable">
+            <tr>
+                <th>id</th>
+                <th>Manufacturer</th>
+                <th>Model</th>
+                <th>Year</th>
+                <th>Update</th>
+                <th>Delete</th>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Hidden form for creating/updating a car -->
+    <div id="createUpdateForm" style="display: none">
+        <h2>
+            <span id="createLabel">Create a</span> 
+            <span id="updateLabel">Update</span> Car
+        </h2>
+        <input type="hidden" name="id" />
+        Manufacturer <input type="text" name="manufacturer" /><br/>
+        Model <input type="text" name="model" /><br/>
+        Year <input type="number" name="year" /><br/>
+        <span><button id="doCreateButton" onclick="doCreate()">Create</button></span>
+        <span><button id="doUpdateButton" onclick="doUpdate()">Update</button></span>
+    </div>
+</body>
+
+<script>
+    // Show the form for creating a new car
+    function showCreate() {
+        document.getElementById('showCreateButton').style.display = "none";
+        document.getElementById('carTable').style.display = "none";
+        document.getElementById('createUpdateForm').style.display = "block";
+        document.getElementById('createLabel').style.display = "inline";
+        document.getElementById('updateLabel').style.display = "none";
+        document.getElementById('doCreateButton').style.display = "block";
+        document.getElementById('doUpdateButton').style.display = "none";
+    }
+
+    // Return to the table view
+    function showViewAll() {
+        document.getElementById('showCreateButton').style.display = "block";
+        document.getElementById('carTable').style.display = "block";
+        document.getElementById('createUpdateForm').style.display = "none";
+    }
+
+    // Show form with values populated for updating a car
+    function showUpdate(buttonElement) {
+        showCreate(); // Reuse logic to show form
+        document.getElementById('createLabel').style.display = "none";
+        document.getElementById('updateLabel').style.display = "inline";
+        document.getElementById('doCreateButton').style.display = "none";
+        document.getElementById('doUpdateButton').style.display = "block";
+
+        var rowElement = buttonElement.parentNode.parentNode;
+        var car = getCarFromRow(rowElement);
+        populateFormWithCar(car);
+    }
+
+    // Handle create button click
+    function doCreate() {
+        var form = document.getElementById('createUpdateForm');
+        var car = {
+            manufacturer: form.querySelector('input[name="manufacturer"]').value,
+            model: form.querySelector('input[name="model"]').value,
+            year: form.querySelector('input[name="year"]').value
+        };
+        createCarAjax(car);
+    }
+
+    // Handle update button click
+    function doUpdate() {
+        var car = getCarFromForm();
+        var rowElement = document.getElementById(car.id);
+        updateCarAjax(car);
+        setCarInRow(rowElement, car);
+        clearForm();
+        showViewAll();
+    }
+
+    // Handle delete button click
+    function doDelete(buttonElem) {
+        var rowElement = buttonElem.parentNode.parentNode;
+        var index = rowElement.rowIndex;
+        deleteCarAjax(rowElement.getAttribute("id"));
+        document.getElementById('carTable').deleteRow(index);
+    }
+
+    // Add a new row to the table for a car
+    function addCarToTable(car) {
+        var tableElement = document.getElementById('carTable');
+        var rowElement = tableElement.insertRow(-1);
+        rowElement.setAttribute('id', car.id);
+
+        rowElement.insertCell(0).innerHTML = car.id;
+        rowElement.insertCell(1).innerHTML = car.manufacturer;
+        rowElement.insertCell(2).innerHTML = car.model;
+        rowElement.insertCell(3).innerHTML = car.year;
+        rowElement.insertCell(4).innerHTML = '<button onclick="showUpdate(this)">Update</button>';
+        rowElement.insertCell(5).innerHTML = '<button onclick="doDelete(this)">Delete</button>';
+    }
+
+    // Clear the input fields in the form
+    function clearForm() {
+        var form = document.getElementById('createUpdateForm');
+        form.querySelector('input[name="manufacturer"]').value = '';
+        form.querySelector('input[name="model"]').value = '';
+        form.querySelector('input[name="year"]').value = '';
+    }
+
+    // Extract car data from a table row
+    function getCarFromRow(rowElement) {
+        return {
+            id: rowElement.getAttribute('id'),
+            manufacturer: rowElement.cells[1].firstChild.textContent,
+            model: rowElement.cells[2].firstChild.textContent,
+            year: parseInt(rowElement.cells[3].firstChild.textContent, 10)
+        };
+    }
+
+    // Update table row with new car data
+    function setCarInRow(rowElement, car) {
+        rowElement.cells[0].firstChild.textContent = car.id;
+        rowElement.cells[1].firstChild.textContent = car.manufacturer;
+        rowElement.cells[2].firstChild.textContent = car.model;
+        rowElement.cells[3].firstChild.textContent = car.year;
+    }
+
+    // Fill form with car data for editing
+    function populateFormWithCar(car) {
+        var form = document.getElementById('createUpdateForm');
+        form.querySelector('input[name="id"]').disabled = true;
+        form.querySelector('input[name="id"]').value = car.id;
+        form.querySelector('input[name="manufacturer"]').value = car.manufacturer;
+        form.querySelector('input[name="model"]').value = car.model;
+        form.querySelector('input[name="year"]').value = car.year;
+    }
+
+    // Read form data and convert to a car object
+    function getCarFromForm() {
+        var form = document.getElementById('createUpdateForm');
+        return {
+            id: form.querySelector('input[name="id"]').value,
+            manufacturer: form.querySelector('input[name="manufacturer"]').value,
+            model: form.querySelector('input[name="model"]').value,
+            year: parseInt(form.querySelector('input[name="year"]').value, 10)
+        };
+    }
+
+    // === AJAX Functions ===
+
+    // Fetch all cars and populate the table
+    function getAllAjax() {
+        $.ajax({
+            url: "/cars",
+            method: "GET",
+            dataType: "JSON",
+            success: function(result) {
+                for (car of result) {
                     addCarToTable(car);
-                    clearForm();
-                    showViewAll();
-                },
-                error: function(xhr, status, error) {
-                    console.log("error: " + status + " msg:" + error);
                 }
-            });
-        }
-        function updateCarAjax(car) {
-            console.log(JSON.stringify(car));
-            $.ajax({
-                url: "/cars/" + encodeURI(car.id),
-                method: "PUT",
-                data: JSON.stringify(car),
-                dataType: "JSON",
-                contentType: "application/json; charset=utf-8",
-                success: function(result) {
-                    // no additional action needed on success (table already updated in UI)
-                },
-                error: function(xhr, status, error) {
-                    console.log("error: " + status + " msg:" + error);
-                }
-            });
-        }
-        function deleteCarAjax(id) {
-            $.ajax({
-                url: "/cars/" + encodeURI(id),
-                method: "DELETE",
-                dataType: "JSON",
-                contentType: "application/json; charset=utf-8",
-                success: function(result) {
-                    // car deletion handled in UI by removing the row
-                },
-                error: function(xhr, status, error) {
-                    console.log("error: " + status + " msg:" + error);
-                }
-            });
-        }
-        // Load all cars on page load
-        getAllAjax();
-    </script>
+            },
+            error: function(xhr, status, error) {
+                console.log("error: " + status + " msg:" + error);
+            }
+        });
+    }
+
+    // Send a POST request to create a new car
+    function createCarAjax(car) {
+        $.ajax({
+            url: "/cars",
+            method: "POST",
+            data: JSON.stringify(car),
+            dataType: "JSON",
+            contentType: "application/json; charset=utf-8",
+            success: function(result) {
+                car.id = result.id;
+                addCarToTable(car);
+                clearForm();
+                showViewAll();
+            },
+            error: function(xhr, status, error) {
+                console.log("error: " + status + " msg:" + error);
+            }
+        });
+    }
+
+    // Send a PUT request to update an existing car
+    function updateCarAjax(car) {
+        $.ajax({
+            url: "/cars/" + encodeURI(car.id),
+            method: "PUT",
+            data: JSON.stringify(car),
+            dataType: "JSON",
+            contentType: "application/json; charset=utf-8",
+            error: function(xhr, status, error) {
+                console.log("error: " + status + " msg:" + error);
+            }
+        });
+    }
+
+    // Send a DELETE request to remove a car
+    function deleteCarAjax(id) {
+        $.ajax({
+            url: "/cars/" + encodeURI(id),
+            method: "DELETE",
+            dataType: "JSON",
+            contentType: "application/json; charset=utf-8",
+            error: function(xhr, status, error) {
+                console.log("error: " + status + " msg:" + error);
+            }
+        });
+    }
+
+    // Load cars when the page loads
+    getAllAjax();
+</script>
 </html>
